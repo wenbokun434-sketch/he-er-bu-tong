@@ -1,0 +1,23 @@
+# Local secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Dependencies and generated files
+node_modules/
+dist/
+build/
+.next/
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*.log
+
+# Local editor and operating system files
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
