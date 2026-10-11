@@ -1,6 +1,12 @@
 import { sql } from "drizzle-orm";
 import { index, integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
 
+export const rehearsalArchives = sqliteTable('rehearsal_archives', {
+  id: text('id').primaryKey(), caseId: text('case_id').notNull(),
+  payload: text('payload').notNull(),
+  createdAt: text('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+});
+
 // Only shared meeting messages are stored here. Private reflections never enter
 // this table until their author intentionally posts a shared version.
 export const messages = sqliteTable("messages", {

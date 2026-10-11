@@ -4,6 +4,7 @@ import "./collaboration.css";
 import "./graph.css";
 import "./cases.css";
 import "./workflow.css";
+import "./rehearsal.css";
 
 export const metadata: Metadata = {
   title: "和议书 · HeYi OS",

@@ -41,11 +41,11 @@ export function migrate(stateDirectory = defaultState) {
   if (result.status !== 0) throw new Error('Local database migration failed. Existing data was not reset.');
 }
 
-export function startArgs({ stateDirectory = defaultState, port = 5173, withoutSecrets = false } = {}) {
+export function startArgs({ stateDirectory = defaultState, port = 5173, withoutSecrets = false, rehearsal = false } = {}) {
   if (!Number.isInteger(Number(port)) || Number(port) < 1 || Number(port) > 65535) throw new Error('Invalid local port.');
   return [wrangler, 'dev', '--config', localConfig(), '--local',
     '--persist-to', stateDirectory, '--ip', '127.0.0.1', '--port', String(port),
-    '--inspector-port', '0', '--env-file', environmentFile({ withoutSecrets }), '--log-level', 'warn'];
+    '--inspector-port', '0', '--env-file', environmentFile({ withoutSecrets }), '--log-level', 'warn', ...(rehearsal ? ['--var', 'HEYI_REHEARSAL:true'] : [])];
 }
 
 if (process.argv[1] && pathToFileURL(path.resolve(process.argv[1])).href === import.meta.url) {

@@ -8,6 +8,8 @@ import { getCase } from '../lib/cases';
 import { emptyProposal, missingProposalFields, proposalFields, type ProposalDetails } from '../lib/proposal';
 import { actors, activeVotes, describeEvent, parties, profileFields, profileStamp, topicStatus, voteLabels, type CollaborationState, type PartyKey, type Profile, type RoleKey, type Topic, type VoteChoice } from "../lib/collaboration";
 
+import {rehearsalProposal} from "../lib/rehearsal";
+
 export type Mutate = (body: Record<string, unknown>) => Promise<boolean>;
 export function timeLabel(value: string) {
   const normalized = value.includes("T") ? value : `${value.replace(" ", "T")}Z`;
@@ -49,7 +51,7 @@ export function ProfilePanel({ state, roleKey, mutate, busy }: { state: Collabor
   </>;
 }
 
-function ProposalEditor({ topic, state, mutate, busy, close }: { topic: Topic; state: CollaborationState; mutate: Mutate; busy: boolean; close: () => void }) {
+function ProposalEditor({ topic, state, mutate, busy, close, rehearsal }: { rehearsal?:boolean; topic: Topic; state: CollaborationState; mutate: Mutate; busy: boolean; close: () => void }) {
   const [details, setDetails] = useState<ProposalDetails>(topic.proposal?.details ?? emptyProposal());
   const [reason, setReason] = useState("");
   const [baseRevision, setBaseRevision] = useState(state.revision);
@@ -59,6 +61,7 @@ function ProposalEditor({ topic, state, mutate, busy, close }: { topic: Topic; s
     if (await mutate({ kind: "proposal", topicId: topic.id, details, reason, expectedRevision: baseRevision })) close();
   }
   return <form className="editor-form compact" onSubmit={submit}>
+    {rehearsal&&<div className="rehearsal-sample"><p>虚构彩排草稿。填入示例会覆盖当前未提交表单；核对后仍需手动发布，不会自动确认。</p><button type="button" className="secondary" disabled={busy} onClick={()=>{setDetails(rehearsalProposal(!!topic.proposal,state.caseId,topic.id));setReason(topic.proposal?'回应本议题各方底线，补充共同复审。':'第一稿：先呈现本议题的分歧。');}}>填入{topic.proposal?'修订稿':'第一稿'}示例</button></div>}
     <div className={`proposal-check ${missingProposalFields(details).length?'incomplete':''}`}>内容完整性：{5-missingProposalFields(details).length}/5 项已填写。{missingProposalFields(details).length ? `还需填写：${missingProposalFields(details).join('、')}。` : '五项已填齐，仅表示形式完整，不代表可行、合规或三方同意。'}</div>
     {topic.proposal && !topic.proposal.details && <details className="legacy-proposal"><summary>参考旧方案原文（保留，不自动代填）</summary><p>{topic.proposal.text}</p></details>}
     {proposalFields.map(field=><label key={field.key}>{field.label}<span className="field-hint">{field.hint}</span><textarea aria-label={field.label} placeholder={field.hint} value={details[field.key]} onChange={event=>setDetails({...details,[field.key]:event.target.value})} rows={3} maxLength={600} required /></label>)}
@@ -87,12 +90,12 @@ function VoteForm({ topic, state, roleKey, mutate, busy }: { topic: Topic; state
     <label>{choice === "accept" ? "补充说明（选填）" : choice === "conditional" ? "必须纳入方案的接受条件" : choice === "object" ? "具体异议与底线" : "还需要什么信息？"}<textarea value={note} onChange={event => setNote(event.target.value)} placeholder={choice === "conditional" ? "例如：增加社区代表复审权，并明确暂停后续访问的权限。" : "写明原因或条件，让其他成员有据可回应。"} rows={3} maxLength={800} required={choice !== "accept"} /></label>
     {stale && <div className="notice">方案或共享立场已更新，你的未提交反馈仍保留。请阅读最新内容后重新确认。<button className="text-button" type="button" onClick={() => { setReviewedProposal(topic.proposal!.id); setReviewedProfiles(profileStamp(state)); }}>我已阅读当前版本，继续表态</button></div>}
     {missingProposalFields(topic.proposal!.details).length>0 && <p className="proposal-check incomplete">旧版方案尚未补全五项内容。历史表态保留；新的“接受”需先补全并发布新版本，仍可提出异议或信息需求。</p>}
-    <button className="primary" disabled={busy || stale || (choice==='accept' && missingProposalFields(topic.proposal!.details).length>0)}>{existing ? "更新我的表态" : "确认提交表态"}</button>
+    <button className="primary" disabled={busy || stale || (choice==='accept' && missingProposalFields(topic.proposal!.details).length>0)}>{`以${actors[roleKey].role}身份${existing ? "更新" : "提交"}：${voteLabels[choice]}`}</button>
     <p className="field-hint">只代表你所选演示角色对当前版本的回应，不是正式身份认证或法律签署。</p>
   </form>;
 }
 
-function TopicDetail({ topic, state, roleKey, mutate, busy, goMeeting }: { topic: Topic; state: CollaborationState; roleKey: RoleKey; mutate: Mutate; busy: boolean; goMeeting: () => void }) {
+function TopicDetail({ topic, state, roleKey, mutate, busy, goMeeting, rehearsal }: { rehearsal?:boolean; topic: Topic; state: CollaborationState; roleKey: RoleKey; mutate: Mutate; busy: boolean; goMeeting: () => void }) {
   const actors=getCase(state.caseId).actors;
   const [editing, setEditing] = useState(false);
   const status = topicStatus(topic, state);
@@ -108,7 +111,7 @@ function TopicDetail({ topic, state, roleKey, mutate, busy, goMeeting }: { topic
         const oldVote = topic.votes[key];
         return <div className="vote-row" key={key}><div><b>{actors[key].role}</b><span className={`status ${vote?.choice ?? "pending"}`}>{vote ? voteLabels[vote.choice] : oldVote ? "立场变更 · 待复核" : "未回应"}</span></div><p>{vote?.note || (vote?.choice === "accept" ? "明确接受当前方案。" : oldVote ? "原表态已保留在历史中，不计入当前确认。" : "未回应不代表同意。")}</p></div>;
       })}</div>
-      {editing && <ProposalEditor topic={topic} state={state} mutate={mutate} busy={busy} close={() => setEditing(false)} />}
+      {editing && <ProposalEditor rehearsal={rehearsal} topic={topic} state={state} mutate={mutate} busy={busy} close={() => setEditing(false)} />}
       {topic.proposal && !editing && (roleKey === "coordinator" ? <div className="privacy">协调员可提出或修订方案，不能替三方表态。切换到参与方后可提交反馈。</div> : <VoteForm key={roleKey} topic={topic} state={state} roleKey={roleKey} mutate={mutate} busy={busy} />)}
     </div>
   </section>;
@@ -125,7 +128,7 @@ export function HistoryPanel({ state, topicId }: { state: CollaborationState; to
   </div></details>;
 }
 
-export function DifferenceMap({ state, messages, roleKey, mutate, busy, goMeeting, goProfiles }: { state: CollaborationState; messages: SharedMessage[]; roleKey: RoleKey; mutate: Mutate; busy: boolean; goMeeting: () => void; goProfiles: () => void }) {
+export function DifferenceMap({ state, messages, roleKey, mutate, busy, goMeeting, goProfiles, rehearsal }: { rehearsal?:boolean; state: CollaborationState; messages: SharedMessage[]; roleKey: RoleKey; mutate: Mutate; busy: boolean; goMeeting: () => void; goProfiles: () => void }) {
   const config=getCase(state.caseId);
   const [selected, setSelected] = useState(state.topics[0].id);
   const [filter, setFilter] = useState("all");
@@ -141,7 +144,7 @@ export function DifferenceMap({ state, messages, roleKey, mutate, busy, goMeetin
   }
   return <>
     <div className="map-toolbar"><div><span className="version-label">共享地图 · r{state.revision}</span><p>立场与表态自动更新节点；人工关联或审核 AI 建议后更新连线。保留原文依据。</p></div><button className="secondary" onClick={goProfiles}>修改我的共享立场 ↗</button></div>
-    <RelationshipMap state={state} messages={messages} mutate={mutate} busy={busy} onTopic={setSelected} />
+    {rehearsal?<details className="rehearsal-map"><summary>展开关系图与原文依据 · 可选展示镜头</summary><RelationshipMap state={state} messages={messages} mutate={mutate} busy={busy} onTopic={setSelected} /></details>:<RelationshipMap state={state} messages={messages} mutate={mutate} busy={busy} onTopic={setSelected} />}
     <h2 className="block-title">议题与方案工作区</h2>
     <div className="map-layout"><div>
       <section className="card map-canvas"><div className="common-node"><span className="eyebrow">COMMON DIRECTION · 案例设定</span><h2>{config.direction}</h2><p>{agreed}/{state.topics.length} 项方案在流程上获三方确认 · 内容完整性单独检查</p></div>
@@ -152,7 +155,7 @@ export function DifferenceMap({ state, messages, roleKey, mutate, busy, goMeetin
       {adding && <form className="editor-form" onSubmit={addTopic}><label>议题名称<input value={title} onChange={event => setTitle(event.target.value)} required maxLength={60} /></label><label>需要协商的问题<textarea value={description} onChange={event => setDescription(event.target.value)} required rows={3} maxLength={600} /></label><button className="primary" disabled={busy}>创建共享议题</button></form>}
       </section>
       <div className="notice"><b>附条件接受 ≠ 已达成共识。</b> 请把条件写入新方案，再请三方分别确认。方案或共享立场变化会触发重新确认，旧记录不会删除。</div>
-    </div><TopicDetail key={`${topic.id}:${roleKey}`} topic={topic} state={state} roleKey={roleKey} mutate={mutate} busy={busy} goMeeting={goMeeting} /></div>
+    </div><TopicDetail rehearsal={rehearsal} key={`${topic.id}:${roleKey}`} topic={topic} state={state} roleKey={roleKey} mutate={mutate} busy={busy} goMeeting={goMeeting} /></div>
     <h2 className="block-title">三方当前共享立场 <span>示例可由对应角色编辑替换</span></h2><SharedProfiles state={state} />
     <AssistantPanel state={state} roleKey={roleKey} mutate={mutate} busy={busy} />
     <HistoryPanel state={state} />
