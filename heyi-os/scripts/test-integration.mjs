@@ -21,7 +21,7 @@ let worker;
 try {
   migrate(stateDirectory);
   migrate(stateDirectory); // Re-running migrations must be safe.
-  worker = spawn(process.execPath, startArgs({ stateDirectory, port, withoutSecrets: true }), {
+  worker = spawn(process.execPath, startArgs({ stateDirectory, port, withoutSecrets: true, rehearsal: true }), {
     cwd: projectRoot, env: safeEnv, stdio: ['ignore', 'inherit', 'inherit'],
   });
   worker.on('error', error => console.error(error.message));
@@ -45,7 +45,7 @@ try {
   });
   assert.equal(noKey.status, 503);
   assert.match((await noKey.json()).error, /尚未配置/);
-  for (const file of ['collaboration-api.mjs', 'difference-graph-api.mjs', 'cases-api.mjs', 'workflow-api.mjs']) {
+  for (const file of ['collaboration-api.mjs', 'difference-graph-api.mjs', 'cases-api.mjs', 'workflow-api.mjs', 'rehearsal-api.mjs']) {
     const result = spawnSync(process.execPath, ['--experimental-strip-types', path.join(projectRoot, 'tests', file)], {
       cwd: projectRoot, env: { ...safeEnv, HEYI_TEST_URL: base }, stdio: 'inherit',
     });

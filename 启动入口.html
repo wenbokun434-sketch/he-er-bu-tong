@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>和议书 · 启动入口</title>
+<style>
+:root{color-scheme:light;font-family:"Microsoft YaHei","PingFang SC",sans-serif;color:#263b36;background:#f4f2e9}*{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;padding:28px}main{width:min(720px,100%);background:#fffef9;border:1px solid #d8ddd0;border-radius:22px;padding:clamp(24px,5vw,48px);box-shadow:0 18px 70px #243b3510}.brand{display:flex;align-items:center;gap:14px}.seal{display:grid;place-items:center;width:52px;height:52px;background:#294b40;color:white;font-family:serif;font-size:30px;border-radius:14px}.eyebrow{font-size:12px;letter-spacing:3px;color:#718274}h1{margin:5px 0;font-size:24px}h2{font-size:17px;margin:0 0 12px}p{line-height:1.8;color:#647169}.intro{margin:24px 0}.actions{display:flex;flex-wrap:wrap;gap:12px;margin:24px 0}.button,button{font:inherit;font-weight:600;border-radius:10px;padding:13px 20px;min-height:46px;cursor:pointer;text-decoration:none;border:1px solid #cbd6cd;background:transparent;color:#294b40}.primary{background:#294b40;color:#fff;border-color:#294b40}.button:hover,button:hover{filter:brightness(.94)}:focus-visible{outline:3px solid #bc8d48;outline-offset:4px}.status{font-size:14px;display:flex;align-items:center;gap:9px;color:#647169}.dot{width:8px;height:8px;background:#9caa9c;border-radius:50%}.ready .dot{background:#3b8967}.help{border-top:1px solid #e1e5dc;padding-top:26px;margin-top:26px}ol{padding-left:22px;line-height:1.9;color:#647169}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#edf1e9;color:#294b40;padding:18px;border-radius:10px;font-size:13px;line-height:1.8}footer{margin-top:24px;font-size:12px;color:#788479;line-height:1.8}.feedback{min-height:22px;font-size:13px;color:#526a58}a{color:#294b40}@media(prefers-reduced-motion:no-preference){.button,button{transition:filter .15s}}
+</style>
+</head>
+<body>
+<main>
+<div class="brand"><div class="seal" aria-hidden="true">和</div><div><div class="eyebrow">HEYI OS · LOCAL</div><h1>和议书 · 启动入口</h1></div></div>
+<p class="intro">不同的立场，共同的行动。<br>进入本机应用，体验协作画像、差异地图、和议书与承诺追踪。</p>
+<div id="status" class="status" role="status" aria-live="polite"><span class="dot" aria-hidden="true"></span><span id="statusText">正在检查本地服务…</span></div>
+<div class="actions"><a class="button primary" href="http://127.0.0.1:5173/" target="_blank" rel="noopener">进入应用 ↗</a><button id="check" type="button">重新检查</button></div>
+<div class="help"><h2>录屏与上台演示</h2><p>在本文件旁边双击 <strong>启动演示.cmd</strong>，将自动启动并打开独立彩排。彩排页面支持保存快照后开始新一轮，正常试用数据不受影响。</p><a class="button" href="http://127.0.0.1:5174/?caseId=campus" target="_blank" rel="noopener">进入独立彩排 ↗</a></div><div class="help"><h2>如果正常试用打不开</h2><ol><li>在本文件所在文件夹打开 Windows PowerShell。</li><li>复制下面两行命令，粘贴并执行。</li><li>保留运行中的终端，再点击“进入应用”。</li></ol><pre id="command">Set-Location -LiteralPath '.\heyi-os'
+npm.cmd start</pre><button id="copy" type="button">复制启动命令</button><div id="feedback" class="feedback" role="status" aria-live="polite"></div></div>
+<footer>应用地址：<a href="http://127.0.0.1:5173/" target="_blank" rel="noopener">http://127.0.0.1:5173/</a><br>此 HTML 是本机访问入口；启动服务需在 PowerShell 中执行命令。关闭服务终端会停止应用，已保存的数据仍保留。AI 功能需另行配置密钥。</footer>
+</main>
+<script>
+const statusBox=document.getElementById('status');
+const statusText=document.getElementById('statusText');
+const checkButton=document.getElementById('check');
+const feedback=document.getElementById('feedback');
+async function checkService(){
+ checkButton.disabled=true;statusBox.classList.remove('ready');statusText.textContent='正在检查本地服务…';
+ const controller=new AbortController();const timer=setTimeout(()=>controller.abort(),4000);
+ try{await fetch('http://127.0.0.1:5173/',{mode:'no-cors',cache:'no-store',signal:controller.signal});statusBox.classList.add('ready');statusText.textContent='本地端口可访问，点击“进入应用”开始试用。';}
+ catch{statusText.textContent='未能确认服务状态。可尝试进入应用，或按下方步骤启动。';}
+ finally{clearTimeout(timer);checkButton.disabled=false;}
+}
+checkButton.addEventListener('click',checkService);
+document.getElementById('copy').addEventListener('click',async()=>{
+ const command=document.getElementById('command');
+ try{await navigator.clipboard.writeText(command.textContent);feedback.textContent='已复制，请在 PowerShell 中粘贴并执行。';}
+ catch{const range=document.createRange();range.selectNodeContents(command);const selection=window.getSelection();selection.removeAllRanges();selection.addRange(range);feedback.textContent='命令已选中，请按 Ctrl+C 复制。';}
+});
+checkService();
+</script>
+</body>
+</html>
