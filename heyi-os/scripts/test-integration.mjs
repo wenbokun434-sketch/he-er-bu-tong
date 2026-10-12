@@ -45,6 +45,7 @@ try {
   });
   assert.equal(noKey.status, 503);
   assert.match((await noKey.json()).error, /尚未配置/);
+  const invalidLanguage=await fetch(base+'/api/assistant',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({caseId:'openair',actorKey:'coordinator',prompt:'Test',language:'invalid',requestId:crypto.randomUUID(),shareConfirmed:true,consentVersion:'acctoken-deepseek-v1'})});assert.equal(invalidLanguage.status,400);
   for (const file of ['collaboration-api.mjs', 'difference-graph-api.mjs', 'cases-api.mjs', 'workflow-api.mjs', 'rehearsal-api.mjs']) {
     const result = spawnSync(process.execPath, ['--experimental-strip-types', path.join(projectRoot, 'tests', file)], {
       cwd: projectRoot, env: { ...safeEnv, HEYI_TEST_URL: base }, stdio: 'inherit',

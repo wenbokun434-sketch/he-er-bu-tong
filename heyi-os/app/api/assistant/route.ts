@@ -26,6 +26,8 @@ export async function POST(request: Request) {
   if (body.consentVersion !== AI_CONSENT_VERSION) return fail("AI 服务已切换至 ACCTOKEN，请刷新页面并重新确认数据发送说明。", 409);
   if(!isCaseId(body.caseId))return fail('请选择有效案例；旧页面请刷新后再操作。',409);
   const caseId=body.caseId;
+  if(body.language!==undefined&&body.language!=="zh"&&body.language!=="en")return fail("Invalid response language.");
+  const language=body.language==="en"?"en":"zh";
   if (!env.ACCTOKEN_API_KEY) return fail("服务器尚未配置 ACCTOKEN 密钥，无法生成真实回答。", 503);
   let claimed = false;
   try {
@@ -39,7 +41,7 @@ export async function POST(request: Request) {
     claimed = true;
     const recent = await env.DB!.prepare("SELECT prompt, result FROM ai_runs WHERE case_id = ? AND status = 'complete' ORDER BY created_at DESC, rowid DESC LIMIT 3").bind(caseId).all<{ prompt: string; result: string }>();
     const previous = recent.results.reverse().map(r => ({ question: r.prompt, answer: String(JSON.parse(r.result).answer).slice(0, 1800) }));
-    const result = await askAssistant(env.ACCTOKEN_API_KEY, model(), state, await readMessages(caseId), body.actorKey as RoleKey, body.prompt.trim(), previous, env.ACCTOKEN_BASE_URL || AI_BASE_URL);
+    const result = await askAssistant(env.ACCTOKEN_API_KEY, model(), state, await readMessages(caseId), body.actorKey as RoleKey, body.prompt.trim(), previous, env.ACCTOKEN_BASE_URL || AI_BASE_URL, language);
     await env.DB!.prepare("UPDATE ai_runs SET status = 'complete', result = ? WHERE id = ? AND case_id = ?").bind(JSON.stringify(result), body.requestId,caseId).run();
     const run = await env.DB!.prepare(`SELECT ${columns} FROM ai_runs WHERE id = ? AND case_id = ?`).bind(body.requestId,caseId).first<RunRow>();
     return Response.json({ run: present(run!) }, { status: 201, headers });

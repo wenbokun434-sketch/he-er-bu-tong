@@ -1,7 +1,9 @@
 import assert from 'node:assert/strict';
 const base=process.env.HEYI_TEST_URL;const json=async(path)=>(await (await fetch(base+path)).json());
 const send=async(body,origin=new URL(base).origin)=>fetch(base+'/api/rehearsal',{method:'POST',headers:{'Content-Type':'application/json',Origin:origin},body:JSON.stringify(body)});
-assert.equal((await json('/api/rehearsal?caseId=campus')).enabled,true);
+const mode=await json('/api/rehearsal?caseId=campus');
+assert.equal(mode.enabled,true);
+assert.equal(mode.aiConfigured,false,'隔离接口测试不能加载真实密钥');
 const before=await json('/api/collaboration?caseId=campus'),workflow=await json('/api/workflow?caseId=campus'),other=await json('/api/collaboration?caseId=openair');
 const body={caseId:'campus',confirm:true,expectedRevision:before.state.revision,expectedWorkflowRevision:workflow.workflow.revision};
 assert.equal((await send(body,'http://evil.example')).status,403);

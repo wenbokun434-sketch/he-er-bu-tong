@@ -5,3 +5,5 @@
 @media(prefers-reduced-motion:reduce){.rehearsal-guide *{animation:none!important;transition:none!important}}
 
 .rehearsal-map{margin:16px 0 24px;border:1px solid #b9cdd4;border-radius:12px;background:#f1f6f8}.rehearsal-map>summary{cursor:pointer;padding:16px 20px;font-weight:600;color:#193e4b}.rehearsal-map[open]>summary{border-bottom:1px solid #b9cdd4}
+
+.rehearsal-ai-switch{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px}.rehearsal-ai-switch button[aria-pressed="true"]{background:#286a80;color:white;border-color:#286a80}.demo-strip .rehearsal-ai-switch+p{margin:0 0 8px;line-height:1.6}

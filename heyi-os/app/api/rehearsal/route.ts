@@ -11,7 +11,7 @@ export async function GET(request:Request){
  const id=url.searchParams.get('archiveId');
  if(id){const row=await env.DB!.prepare('SELECT payload FROM rehearsal_archives WHERE id=? AND case_id=?').bind(id,caseId).first<{payload:string}>();if(!row)return fail('快照不存在。',404);return new Response(row.payload,{headers:{...headers,'Content-Type':'application/json; charset=utf-8','Content-Disposition':`attachment; filename="rehearsal-${id}.json"`}});}
  const latest=await env.DB!.prepare('SELECT id FROM rehearsal_archives WHERE case_id=? ORDER BY rowid DESC LIMIT 1').bind(caseId).first<{id:string}>();
- return Response.json({enabled:true,lastArchiveId:latest?.id??null},{headers});
+ return Response.json({enabled:true,aiConfigured:!!env.ACCTOKEN_API_KEY,lastArchiveId:latest?.id??null},{headers});
 }
 export async function POST(request:Request){
  if(!enabled())return fail('正常试用模式不提供彩排重置。',403);

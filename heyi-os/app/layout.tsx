@@ -5,6 +5,8 @@ import "./graph.css";
 import "./cases.css";
 import "./workflow.css";
 import "./rehearsal.css";
+import "./language.css";
+import {LanguageProvider} from "../lib/language";
 
 export const metadata: Metadata = {
   title: "和议书 · HeYi OS",
@@ -18,7 +20,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="zh-CN">
-      <body className="antialiased">{children}</body>
+      <body className="antialiased"><LanguageProvider>{children}</LanguageProvider></body>
     </html>
   );
 }
