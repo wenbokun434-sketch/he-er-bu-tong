@@ -36,6 +36,7 @@ await action('task_schedule',{taskId:t.id,dueDate:'2026-11-04',reviewDate:'2026-
 await action('task_progress',{taskId:t.id,status:'review',progress:100,evidence:'轮换表编号 TEST-2',note:'已补充'},'research');
 await action('task_review',{taskId:t.id,outcome:'accept',note:'材料与标准相符'},'hospital');assert.equal(w.tasks.at(-1).status,'done');
 const exportResponse=await fetch(base+`/api/workflow/export?caseId=campus&documentId=${d.id}&format=html`);assert.equal(exportResponse.status,200);assert.ok((await exportResponse.text()).includes('TEST-2')===false);assert.ok(exportResponse.headers.get('content-disposition').includes('attachment'));
+const englishExport=await fetch(base+`/api/workflow/export?caseId=campus&documentId=${d.id}&format=html&lang=en`);assert.equal(englishExport.status,200);const englishHtml=await englishExport.text();assert.match(englishHtml,/<html lang="en">/);assert.match(englishHtml,/Shared clauses/);assert.match(englishHtml,/Record #/);
 assert.equal((await fetch(base+`/api/workflow/export?caseId=neighborhood&documentId=${d.id}&format=md`)).status,404);
 const other=(await get('/api/workflow?caseId=neighborhood')).workflow;assert.equal(other.documents.length,0);assert.equal(other.tasks.length,0);
 await send('/api/workflow',{caseId:'neighborhood',actorKey:'coordinator',expectedRevision:0,expectedCollaborationRevision:0,kind:'document_submit',documentId:d.id},400);

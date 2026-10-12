@@ -1,4 +1,5 @@
 "use client";
+import {useLanguage,localizeTree} from "../lib/language";
 import { useState, type FormEvent } from "react";
 import { baseNodes, buildGraph, linkIsStale, linkLabels, sourceCatalog, type SharedMessage } from "../lib/difference-graph";
 import type { CollaborationState } from "../lib/collaboration";
@@ -6,10 +7,14 @@ import type { Evidence, LinkKind } from "../lib/graph-types";
 import type { Mutate } from "./collaboration-panel";
 
 export function EvidenceList({ items }: { items: Evidence[] }) {
-  return <div className="evidence-list">{items.map(e => <article key={e.id}><b>{e.label}</b><small>{e.example ? "案例设定 · 非成员确认" : `来源版本 #${e.version}`} · {e.id}</small><blockquote>{e.text}</blockquote></article>)}</div>;
+ const {language}=useLanguage();
+
+  return localizeTree(<div className="evidence-list">{items.map(e => <article key={e.id}><b>{e.label}</b><small>{e.example ? "案例设定 · 非成员确认" : `来源版本 #${e.version}`} · {e.id}</small><blockquote data-verbatim>{e.text}</blockquote></article>)}</div>,language);
 }
 
 export function RelationshipMap({ state, messages, mutate, busy, onTopic }: { state: CollaborationState; messages: SharedMessage[]; mutate: Mutate; busy: boolean; onTopic: (id: string) => void }) {
+ const {language}=useLanguage();
+
   const [selected, setSelected] = useState("");
   const [showHistory, setShowHistory] = useState(false);
   const [zoom, setZoom] = useState(1);
@@ -42,7 +47,7 @@ export function RelationshipMap({ state, messages, mutate, busy, onTopic }: { st
     const evidenceIds = sources.filter(s => s.nodeId === actualFrom || s.nodeId === actualTo || s.id === extra).map(s => s.id);
     if (await mutate({ kind: "link", relationKind: kind, from: actualFrom, to: actualTo, topicId: topic.id, reason, evidenceIds, expectedRevision: baseRevision })) { setAdding(false); setReason(""); setExtra(""); }
   }
-  return <section className="card relationship-map">
+  return localizeTree(<section className="card relationship-map">
     <div className="head"><div><div className="eyebrow">LIVING DIFFERENCE MAP</div><h2>差异有来处，协商有依据</h2><p className="sub">{graph.nodes.length} 个节点 · {state.links.filter(l => !l.retired).length} 条人工关联 · r{state.revision} 自动同步</p></div><button className="secondary" onClick={() => { setAdding(!adding); setBaseRevision(state.revision); }}>＋ 关联需求与议题</button></div>
     <div className="graph-tools"><span>点击节点查看依据；点击连线查看理由。虚线表示待复核或历史关系。</span><label>缩放<select value={zoom} onChange={e => setZoom(Number(e.target.value))}><option value={0.7}>70%</option><option value={1}>100%</option><option value={1.2}>120%</option></select></label><label><input type="checkbox" checked={showHistory} onChange={e => setShowHistory(e.target.checked)} />包含撤销关系</label></div>
     <div className="graph-scroll" tabIndex={0} aria-label="动态差异关系图，可横向和纵向滚动"><div style={{ width: 1130 * zoom, height: height * zoom }}><div className="graph-stage" style={{ width: 1130, height, transform: `scale(${zoom})`, transformOrigin: "top left" }}>
@@ -69,5 +74,5 @@ export function RelationshipMap({ state, messages, mutate, busy, onTopic }: { st
       {related.length > 0 && <div className="actions">{related.map(e => <button className="secondary" key={e.id} onClick={() => setSelected(e.id)}>{e.stale ? "待复核 · " : ""}{e.label}</button>)}</div>}
       {selectedLink && !selectedLink.retired && <form className="retire-form" onSubmit={async e => { e.preventDefault(); if (await mutate({ kind: "link_retract", linkId: selectedLink.id, reason: retireReason })) { setSelected(""); setRetireReason(""); } }}><input aria-label="撤销关联原因" value={retireReason} onChange={e => setRetireReason(e.target.value)} required maxLength={600} placeholder="撤销原因；原依据会留在历史中" /><button className="secondary" disabled={busy || !retireReason.trim()}>撤销此关联</button></form>}
     </> : <p>选择一个节点或连线，查看它从哪里来、为什么相连。需求不会因方案达成共识而消失。</p>}</div>
-  </section>;
+  </section>,language);
 }

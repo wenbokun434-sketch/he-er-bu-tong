@@ -1,4 +1,6 @@
 "use client";
+import {localizeData} from "../lib/i18n";
+import {useLanguage,localizeTree} from "../lib/language";
 
 import { useState, type FormEvent } from "react";
 import { RelationshipMap } from "./relationship-map";
@@ -18,14 +20,18 @@ export function timeLabel(value: string) {
 }
 
 export function SharedProfiles({ state }: { state: CollaborationState }) {
+ const {language,t:translate}=useLanguage();
+
   const actors=getCase(state.caseId).actors;
-  return <div className="profile-grid">{parties.map(key => <section className="card profile-summary" key={key}>
-    <div className="person-line"><span className={`avatar ${key}`}>{actors[key].actor.slice(0, 1)}</span><div><h2>{actors[key].role}</h2><div className="sub">{actors[key].actor} · {state.profiles[key].revision ? "成员已提交" : "案例示例"}</div></div></div>
+  return localizeTree(<div className="profile-grid">{parties.map(key => <section className="card profile-summary" key={key}>
+    <div className="person-line"><span className={`avatar ${key}`}>{translate(actors[key].actor).slice(0, 1)}</span><div><h2>{actors[key].role}</h2><div className="sub">{actors[key].actor} · {state.profiles[key].revision ? "成员已提交" : "案例示例"}</div></div></div>
     {profileFields.map(field => <div className="profile-field" key={field.key}><b>{field.label}</b><p>{state.profiles[key][field.key]}</p></div>)}
-  </section>)}</div>;
+  </section>)}</div>,language);
 }
 
 export function ProfilePanel({ state, roleKey, mutate, busy }: { state: CollaborationState; roleKey: RoleKey; mutate: Mutate; busy: boolean }) {
+ const {language,t:translate}=useLanguage();
+
   const actors=getCase(state.caseId).actors;
   const [form, setForm] = useState<Profile | null>(null);
   const [baseRevision, setBaseRevision] = useState(state.revision);
@@ -35,7 +41,7 @@ export function ProfilePanel({ state, roleKey, mutate, busy }: { state: Collabor
     event.preventDefault();
     if (await mutate({ kind: "profile", profile: form, shareConfirmed: confirmed, expectedRevision: baseRevision })) { setForm(null); setConfirmed(false); }
   }
-  return <>
+  return localizeTree(<>
     <div className="notice"><b>共享立场 → 地图更新。</b> 只提交你愿意向项目成员公开的摘要。未提交的编辑内容仅在本页内存中，刷新后丢失；发布后会保存到共享历史，无法当作私人草稿撤回。</div>
     <section className="card profile-editor">
       <div className="head"><div><h2>{roleKey === "coordinator" ? "协调员 · 查看与组织" : `${actors[roleKey].role} · 我的共享立场`}</h2><div className="sub">原样保存不创建版本、不影响确认。修改内容后才触发复核；可直接沿用标为示例的案例设定。</div></div>
@@ -48,10 +54,12 @@ export function ProfilePanel({ state, roleKey, mutate, busy }: { state: Collabor
       </form> : <p className="section-note">下方为当前共享版本。点击“编辑我的立场”进行修改；草稿不会自动上传。</p>}
     </section>
     <SharedProfiles state={state} />
-  </>;
+  </>,language);
 }
 
 function ProposalEditor({ topic, state, mutate, busy, close, rehearsal }: { rehearsal?:boolean; topic: Topic; state: CollaborationState; mutate: Mutate; busy: boolean; close: () => void }) {
+ const {language,t:translate}=useLanguage();
+
   const [details, setDetails] = useState<ProposalDetails>(topic.proposal?.details ?? emptyProposal());
   const [reason, setReason] = useState("");
   const [baseRevision, setBaseRevision] = useState(state.revision);
@@ -60,8 +68,8 @@ function ProposalEditor({ topic, state, mutate, busy, close, rehearsal }: { rehe
     event.preventDefault();
     if (await mutate({ kind: "proposal", topicId: topic.id, details, reason, expectedRevision: baseRevision })) close();
   }
-  return <form className="editor-form compact" onSubmit={submit}>
-    {rehearsal&&<div className="rehearsal-sample"><p>虚构彩排草稿。填入示例会覆盖当前未提交表单；核对后仍需手动发布，不会自动确认。</p><button type="button" className="secondary" disabled={busy} onClick={()=>{setDetails(rehearsalProposal(!!topic.proposal,state.caseId,topic.id));setReason(topic.proposal?'回应本议题各方底线，补充共同复审。':'第一稿：先呈现本议题的分歧。');}}>填入{topic.proposal?'修订稿':'第一稿'}示例</button></div>}
+  return localizeTree(<form className="editor-form compact" onSubmit={submit}>
+    {rehearsal&&<div className="rehearsal-sample"><p>虚构彩排草稿。填入示例会覆盖当前未提交表单；核对后仍需手动发布，不会自动确认。</p><button type="button" className="secondary" disabled={busy} onClick={()=>{setDetails(localizeData(rehearsalProposal(!!topic.proposal,state.caseId,topic.id),language));setReason(localizeData(topic.proposal?'回应本议题各方底线，补充共同复审。':'第一稿：先呈现本议题的分歧。',language));}}>填入{topic.proposal?'修订稿':'第一稿'}示例</button></div>}
     <div className={`proposal-check ${missingProposalFields(details).length?'incomplete':''}`}>内容完整性：{5-missingProposalFields(details).length}/5 项已填写。{missingProposalFields(details).length ? `还需填写：${missingProposalFields(details).join('、')}。` : '五项已填齐，仅表示形式完整，不代表可行、合规或三方同意。'}</div>
     {topic.proposal && !topic.proposal.details && <details className="legacy-proposal"><summary>参考旧方案原文（保留，不自动代填）</summary><p>{topic.proposal.text}</p></details>}
     {proposalFields.map(field=><label key={field.key}>{field.label}<span className="field-hint">{field.hint}</span><textarea aria-label={field.label} placeholder={field.hint} value={details[field.key]} onChange={event=>setDetails({...details,[field.key]:event.target.value})} rows={3} maxLength={600} required /></label>)}
@@ -70,10 +78,12 @@ function ProposalEditor({ topic, state, mutate, busy, close, rehearsal }: { rehe
     {stale && <div className="notice">项目出现新变化，你的草稿已保留。请核对上方最新方案和三方反馈。<button className="text-button" type="button" onClick={() => setBaseRevision(state.revision)}>我已核对，提交为新版本</button></div>}
     <p className="ai-check-note">AI 可在发布后通过下方“检查方案完整性”指出缺项与模糊表述，不会代填未共享草稿或替三方批准。</p>
     <div className="actions"><button className="primary" disabled={busy || stale || missingProposalFields(details).length>0}>发布方案 v{(topic.proposal?.version ?? 0) + 1}</button><button type="button" className="secondary" onClick={close}>取消</button></div>
-  </form>;
+  </form>,language);
 }
 
 function VoteForm({ topic, state, roleKey, mutate, busy }: { topic: Topic; state: CollaborationState; roleKey: PartyKey; mutate: Mutate; busy: boolean }) {
+ const {language,t:translate}=useLanguage();
+
   const actors=getCase(state.caseId).actors;
   const existing = activeVotes(topic, state)[roleKey];
   const [choice, setChoice] = useState<VoteChoice>(existing?.choice ?? "accept");
@@ -85,22 +95,24 @@ function VoteForm({ topic, state, roleKey, mutate, busy }: { topic: Topic; state
     event.preventDefault();
     await mutate({ kind: "vote", topicId: topic.id, proposalId: reviewedProposal, profileStamp: reviewedProfiles, choice, note });
   }
-  return <form className="editor-form compact vote-form" onSubmit={submit}>
+  return localizeTree(<form className="editor-form compact vote-form" onSubmit={submit}>
     <label>以 {actors[roleKey].role} 身份回应 v{topic.proposal!.version}<select value={choice} onChange={event => setChoice(event.target.value as VoteChoice)}>{Object.entries(voteLabels).map(([key, label]) => <option value={key} key={key}>{label}</option>)}</select></label>
     <label>{choice === "accept" ? "补充说明（选填）" : choice === "conditional" ? "必须纳入方案的接受条件" : choice === "object" ? "具体异议与底线" : "还需要什么信息？"}<textarea value={note} onChange={event => setNote(event.target.value)} placeholder={choice === "conditional" ? "例如：增加社区代表复审权，并明确暂停后续访问的权限。" : "写明原因或条件，让其他成员有据可回应。"} rows={3} maxLength={800} required={choice !== "accept"} /></label>
     {stale && <div className="notice">方案或共享立场已更新，你的未提交反馈仍保留。请阅读最新内容后重新确认。<button className="text-button" type="button" onClick={() => { setReviewedProposal(topic.proposal!.id); setReviewedProfiles(profileStamp(state)); }}>我已阅读当前版本，继续表态</button></div>}
     {missingProposalFields(topic.proposal!.details).length>0 && <p className="proposal-check incomplete">旧版方案尚未补全五项内容。历史表态保留；新的“接受”需先补全并发布新版本，仍可提出异议或信息需求。</p>}
     <button className="primary" disabled={busy || stale || (choice==='accept' && missingProposalFields(topic.proposal!.details).length>0)}>{`以${actors[roleKey].role}身份${existing ? "更新" : "提交"}：${voteLabels[choice]}`}</button>
     <p className="field-hint">只代表你所选演示角色对当前版本的回应，不是正式身份认证或法律签署。</p>
-  </form>;
+  </form>,language);
 }
 
 function TopicDetail({ topic, state, roleKey, mutate, busy, goMeeting, rehearsal }: { rehearsal?:boolean; topic: Topic; state: CollaborationState; roleKey: RoleKey; mutate: Mutate; busy: boolean; goMeeting: () => void }) {
+ const {language,t:translate}=useLanguage();
+
   const actors=getCase(state.caseId).actors;
   const [editing, setEditing] = useState(false);
   const status = topicStatus(topic, state);
   const votes = activeVotes(topic, state);
-  return <section className="card topic-detail">
+  return localizeTree(<section className="card topic-detail">
     <div className="head"><div><div className="eyebrow">SELECTED ISSUE</div><h2>{topic.title}</h2><div className="sub">{topic.description}</div></div><span className={`status ${status.key}`}>{status.label}</span></div>
     <div className="detail-body"><p className="status-explanation">{status.detail}</p>
       {topic.proposal ? <div className="proposal-text"><div className="person-line"><b>当前方案 · v{topic.proposal.version}</b><small>{actors[topic.proposal.actorKey].actor} · {timeLabel(topic.proposal.createdAt)}</small></div><ProposalContent proposal={topic.proposal} />{topic.proposal.reason && <div className="revision-reason">修订说明：{topic.proposal.reason}</div>}</div> : <div className="empty">还没有可确认的方案。先讨论，再把五项可执行规则提交到这里。</div>}
@@ -114,21 +126,25 @@ function TopicDetail({ topic, state, roleKey, mutate, busy, goMeeting, rehearsal
       {editing && <ProposalEditor rehearsal={rehearsal} topic={topic} state={state} mutate={mutate} busy={busy} close={() => setEditing(false)} />}
       {topic.proposal && !editing && (roleKey === "coordinator" ? <div className="privacy">协调员可提出或修订方案，不能替三方表态。切换到参与方后可提交反馈。</div> : <VoteForm key={roleKey} topic={topic} state={state} roleKey={roleKey} mutate={mutate} busy={busy} />)}
     </div>
-  </section>;
+  </section>,language);
 }
 
 export function HistoryPanel({ state, topicId }: { state: CollaborationState; topicId?: string }) {
+ const {language,t:translate}=useLanguage();
+
   const actors=getCase(state.caseId).actors;
   const [count, setCount] = useState(10);
   const events = state.history.filter(event => !topicId || JSON.parse(event.payload).topicId === topicId || event.kind === "profile");
-  return <details className="card history-panel"><summary>变更记录 <span>{events.length} 条 · 方案、立场和表态均可追溯</span></summary><div className="history-list">
+  return localizeTree(<details className="card history-panel"><summary>变更记录 <span>{events.length} 条 · 方案、立场和表态均可追溯</span></summary><div className="history-list">
     {!events.length && <p className="section-note">还没有实际提交。案例示例不计入成员确认记录。</p>}
     {events.slice(0, count).map(event => { const item = describeEvent(event, state); return <article className="history-item" key={event.id}><div className="meta">#{event.id} · {actors[event.actorKey].actor} · {timeLabel(event.createdAt)}</div><b>{item.title}</b><p>{item.text}</p></article>; })}
     {events.length > count && <button className="secondary" onClick={() => setCount(count + 20)}>查看更多记录</button>}
-  </div></details>;
+  </div></details>,language);
 }
 
-export function DifferenceMap({ state, messages, roleKey, mutate, busy, goMeeting, goProfiles, rehearsal }: { rehearsal?:boolean; state: CollaborationState; messages: SharedMessage[]; roleKey: RoleKey; mutate: Mutate; busy: boolean; goMeeting: () => void; goProfiles: () => void }) {
+export function DifferenceMap({ state, messages, roleKey, mutate, busy, goMeeting, goProfiles, rehearsal, aiEnabled, onAiBusyChange }: { aiEnabled?:boolean;onAiBusyChange?:(busy:boolean)=>void;rehearsal?:boolean; state: CollaborationState; messages: SharedMessage[]; roleKey: RoleKey; mutate: Mutate; busy: boolean; goMeeting: () => void; goProfiles: () => void }) {
+ const {language,t:translate}=useLanguage();
+
   const config=getCase(state.caseId);
   const [selected, setSelected] = useState(state.topics[0].id);
   const [filter, setFilter] = useState("all");
@@ -142,7 +158,7 @@ export function DifferenceMap({ state, messages, roleKey, mutate, busy, goMeetin
     event.preventDefault();
     if (await mutate({ kind: "topic", title, description })) { setAdding(false); setTitle(""); setDescription(""); }
   }
-  return <>
+  return localizeTree(<>
     <div className="map-toolbar"><div><span className="version-label">共享地图 · r{state.revision}</span><p>立场与表态自动更新节点；人工关联或审核 AI 建议后更新连线。保留原文依据。</p></div><button className="secondary" onClick={goProfiles}>修改我的共享立场 ↗</button></div>
     {rehearsal?<details className="rehearsal-map"><summary>展开关系图与原文依据 · 可选展示镜头</summary><RelationshipMap state={state} messages={messages} mutate={mutate} busy={busy} onTopic={setSelected} /></details>:<RelationshipMap state={state} messages={messages} mutate={mutate} busy={busy} onTopic={setSelected} />}
     <h2 className="block-title">议题与方案工作区</h2>
@@ -157,22 +173,26 @@ export function DifferenceMap({ state, messages, roleKey, mutate, busy, goMeetin
       <div className="notice"><b>附条件接受 ≠ 已达成共识。</b> 请把条件写入新方案，再请三方分别确认。方案或共享立场变化会触发重新确认，旧记录不会删除。</div>
     </div><TopicDetail rehearsal={rehearsal} key={`${topic.id}:${roleKey}`} topic={topic} state={state} roleKey={roleKey} mutate={mutate} busy={busy} goMeeting={goMeeting} /></div>
     <h2 className="block-title">三方当前共享立场 <span>示例可由对应角色编辑替换</span></h2><SharedProfiles state={state} />
-    <AssistantPanel state={state} roleKey={roleKey} mutate={mutate} busy={busy} />
+    <AssistantPanel aiEnabled={aiEnabled} onBusyChange={onAiBusyChange} rehearsal={rehearsal} state={state} roleKey={roleKey} mutate={mutate} busy={busy} />
     <HistoryPanel state={state} />
-  </>;
+  </>,language);
 }
 
 export function AgreementPanel({ state }: { state: CollaborationState }) {
+ const {language,t:translate}=useLanguage();
+
   const config=getCase(state.caseId), actors=config.actors;
   const agreed = state.topics.filter(topic => topicStatus(topic, state).key === "agreed");
-  return <section className="card agreement-panel"><div className="head"><div><h2>和议书 · 协商草案</h2><div className="sub">随差异地图更新，仅纳入三方明确接受的当前版本；不是正式签署文件。</div></div></div><div className="agreement">
+  return localizeTree(<section className="card agreement-panel"><div className="head"><div><h2>和议书 · 协商草案</h2><div className="sub">随差异地图更新，仅纳入三方明确接受的当前版本；不是正式签署文件。</div></div></div><div className="agreement">
     <h3>01 · 共同方向（案例设定）</h3><p>{config.direction}</p>
     <h3>02 · 三方已确认的规则（流程状态）</h3>{agreed.length ? agreed.map(topic => <div className="agreement-rule" key={topic.id}><b>{topic.title} · v{topic.proposal!.version}</b><ProposalContent proposal={topic.proposal!} /><small>{parties.map(p=>actors[p].role).join('、')}曾明确接受当前版本；内容完整性不等于确认结果。</small></div>) : <p>暂无三方确认的规则。请在差异地图中提出方案，并由三个参与方分别回应。</p>}
     <h3>03 · 保留的分歧与待办问题</h3>{state.topics.filter(topic => topicStatus(topic, state).key !== "agreed").map(topic => <div className="agreement-rule" key={topic.id}><b>{topic.title} · {topicStatus(topic, state).label}</b><p>{topicStatus(topic, state).detail}</p>{Object.entries(activeVotes(topic, state)).filter(([, vote]) => vote.choice !== "accept").map(([key, vote]) => <p key={key}>{actors[key as PartyKey].role}：{vote.note}</p>)}</div>)}
-  </div></section>;
+  </div></section>,language);
 }
 
 function ProposalContent({proposal}:{proposal:NonNullable<Topic['proposal']>}) {
+ const {language,t:translate}=useLanguage();
+
   const missing=missingProposalFields(proposal.details);
-  return <><div className={`proposal-check ${missing.length?'incomplete':''}`}>{missing.length ? `内容待补全 · 旧版方案：${missing.join('、')}。原文与历史确认均保留，不能将历史确认当作完整性通过。` : '内容完整性：5/5 项已填写。仅检查字段齐全，可执行性仍需三方判断，AI 不能代替批准。'}</div>{proposal.details ? <div className="proposal-fields">{proposalFields.map(f=><div key={f.key}><b>{f.label}</b><p>{proposal.details![f.key]}</p></div>)}</div> : <p>{proposal.text}</p>}</>;
+  return localizeTree(<><div className={`proposal-check ${missing.length?'incomplete':''}`}>{missing.length ? `内容待补全 · 旧版方案：${missing.join('、')}。原文与历史确认均保留，不能将历史确认当作完整性通过。` : '内容完整性：5/5 项已填写。仅检查字段齐全，可执行性仍需三方判断，AI 不能代替批准。'}</div>{proposal.details ? <div className="proposal-fields">{proposalFields.map(f=><div key={f.key}><b>{f.label}</b><p>{proposal.details![f.key]}</p></div>)}</div> : <p>{proposal.text}</p>}</>,language);
 }
